@@ -1,0 +1,156 @@
+﻿using QuanLySinhVien.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace QuanLySinhVien
+{
+    public partial class Form1 : Form
+    {
+        private DuLieuContext _context = new DuLieuContext();
+        private int _select = 0;
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            // Chỉ dùng dữ liệu để hiển thị, không để DbContext theo dõi các entity này.
+            var list = _context.SinhViens
+                .AsNoTracking()
+                .ToList();
+            dgvKetQua.DataSource = list;
+            btnSua.Enabled = false;
+            btnXoa.Enabled = false;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            if (!decimal.TryParse(txtDiemTrungBinh.Text, out decimal diem))
+            {
+                MessageBox.Show("Điểm trung bình phải là số thực hoặc số nguyên.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtDiemTrungBinh.Text = "";
+            }
+
+
+        }
+
+        private void btnThem_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtMSV.Text))
+            {
+                MessageBox.Show("Mã sinh viên không được để trống.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtMSV.Focus();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtTenSinhVien.Text))
+            {
+                MessageBox.Show("Tên sinh viên không được để trống.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtTenSinhVien.Focus();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtDiemTrungBinh.Text))
+            {
+                MessageBox.Show("Điểm trung bình không được để trống.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtDiemTrungBinh.Focus();
+                return;
+            }
+            //foreach(DataGridViewRows )
+            //{
+
+            //}
+            var sinhVien = new SinhVien
+            {
+                MaSinhVien = txtMSV.Text.Trim(),
+                TenSinhVien = txtTenSinhVien.Text.Trim(),
+                DiemTrungBinh = txtDiemTrungBinh.Text.Trim()
+            };
+
+            // Kiểm tra trước để tránh vừa trùng khóa trong DbContext vừa trùng khóa trong database.
+            if (_context.SinhViens.Any(sv => sv.MaSinhVien == sinhVien.MaSinhVien))
+            {
+                MessageBox.Show("Mã sinh viên đã tồn tại.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtMSV.Focus();
+                return;
+            }
+
+            _context.SinhViens.Add(sinhVien);
+            _context.SaveChanges();
+            LoadData();
+            txtTenSinhVien.Clear();
+            txtMSV.Clear();
+            txtDiemTrungBinh.Clear();
+            btnSua.Enabled = false;
+            btnXoa.Enabled = false;
+        }
+
+        private void btnSua_Click(object sender, EventArgs e)
+        {
+            if (_select >= 0)
+            {
+                var selectedRow = dgvKetQua.Rows[_select];
+                var maSinhVien = selectedRow.Cells["MaSinhVien"].Value.ToString();
+                var sinhVien = _context.SinhViens.FirstOrDefault(sv => sv.MaSinhVien == maSinhVien);
+                if (sinhVien != null)
+                {
+                    sinhVien.TenSinhVien = txtTenSinhVien.Text;
+                    sinhVien.DiemTrungBinh = txtDiemTrungBinh.Text;
+                    _context.SaveChanges();
+                    LoadData();
+                    txtTenSinhVien.Clear();
+                    txtMSV.Clear();
+                    txtDiemTrungBinh.Clear();
+                    btnSua.Enabled = false;
+                    btnXoa.Enabled = false;
+                }
+            }
+        }
+
+        private void dgvKetQua_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                _select = e.RowIndex;
+                var selectedRow = dgvKetQua.Rows[_select];
+                txtMSV.Text = selectedRow.Cells["MaSinhVien"].Value.ToString();
+                txtTenSinhVien.Text = selectedRow.Cells["TenSinhVien"].Value.ToString();
+                txtDiemTrungBinh.Text = selectedRow.Cells["DiemTrungBinh"].Value.ToString();
+                btnSua.Enabled = true;
+                btnXoa.Enabled = true;
+            }
+        }
+
+        private void btnXoa_Click(object sender, EventArgs e)
+        {
+            if (_select < 0 || _select >= dgvKetQua.Rows.Count || dgvKetQua.Rows[_select].IsNewRow)
+            {
+                MessageBox.Show("Vui lòng chọn sinh viên để xóa.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var xacNhan = MessageBox.Show("Bạn có chắc chắn xóa hay không","Xác nhận xóa",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if(xacNhan != DialogResult.Yes)
+            {
+                return;
+            }
+
+            var xoasv = _context.SinhViens.Find(_select);
+            if(xoasv != null)
+            {
+                _context.SinhViens.Remove(xoasv);
+                _context.SaveChanges();
+            }
+
+            LoadData();
+            MessageBox.Show("Xóa Thành Công", "Thông Báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+}

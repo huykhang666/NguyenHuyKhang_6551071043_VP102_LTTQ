@@ -1,0 +1,28 @@
+﻿using QuanLySinhVien.Models;
+
+namespace QuanLySinhVien
+{
+    public partial class Form1 : Form
+    {
+        // DuLieuContext _context = new DuLieuContext(); // Missing provider config
+        // Use AddDbContext or configure OnConfiguring in DuLieuContext
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            var list = _context.SinhViens.ToList();
+            dgvKetQua.DataSource = list;
+            btnSua.Enabled = false;
+            btnXoa.Enabled = false;
+        }
+    }
+}
